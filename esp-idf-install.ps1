@@ -147,3 +147,4 @@ Write-Host '安装完成' -ForegroundColor green
 Write-Host ""
 pause
 exit
+
