@@ -25,18 +25,31 @@ IF (Get-Command python) {
 pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 pip config set global.trusted-host https://pypi.tuna.tsinghua.edu.cn
 
-#获取安装地址
-Write-Host ""
-$Path = Read-Host '请输入安装路径(路径: D:\___Software)'
-IF ($Path -notmatch '^[a-zA-Z]:\\') {
+#判断是否首次使用
+IF (![environment]::GetEnvironmentvariable("ESP_INSTALL_PATH", "User")) {
+    #获取安装地址
     Write-Host ""
-    Write-Host '错误路径' -ForegroundColor red
+    $Path = Read-Host '请输入安装路径(路径: D:\___Software)'
+    IF ($Path -notmatch '^[a-zA-Z]:\\') {
+        Write-Host ""
+        Write-Host '错误路径' -ForegroundColor red
+        Write-Host ""
+        pause
+        exit
+    }
+    [environment]::SetEnvironmentvariable("ESP_INSTALL_PATH", $Path + "\esp", "User")
+} ELSE {
+    $Path = [environment]::GetEnvironmentvariable("ESP_INSTALL_PATH", "User")
     Write-Host ""
-    pause
-    exit
+    Write-Host "如需更换安装路径, 请删除用户环境变量: ESP_INSTALL_PATH 后重新执行脚本" -ForegroundColor yellow
+    Write-Host "请输入任意键继续安装..." -ForegroundColor yellow
+    Read-Host
 }
+
+#获取安装版本
 $Version = Read-Host '请输入安装的 idf 版本(分支: release/v4.3.1 或者 标签: v4.3.1)'
-$Version = $Version -replace "release/", "r"
+$Version = $Version.replace("\", "/")
+$Version = $Version.replace("release/v", "rv")
 IF ($Version -eq '') {
     Write-Host ""
     Write-Host '错误分支或错误标签' -ForegroundColor red
@@ -49,8 +62,8 @@ IF ($Version -eq '') {
 Write-Host ""
 $url_idf = 'https://gitee.com/EspressifSystems/esp-idf.git'
 $url_tools = 'https://gitee.com/EspressifSystems/esp-gitee-tools.git'
-$path_tools = $Path + '\esp\esp-gitee-tools'
-$path_esp = $Path + '\esp\esp-idf-' + $Version
+$path_tools = $Path + '\esp-gitee-tools'
+$path_esp = $Path + '\esp-idf-' + $Version
 $path_esp_idf = $path_esp + '\esp-idf'
 $path_esp_espressif = $path_esp + '\.espressif'
 
@@ -66,6 +79,8 @@ IF (Test-Path $path_esp_espressif) {
 }
 
 #打开git bash 安装
+$Version = $Version.replace("rv", "release/v")
+
 $cmd0 = 'cd ' + $path_esp.replace("\", "/") + ' && '
 $cmd1 = "git clone -b $Version $url_idf && "
 $cmd2 = 'cd .. && '
@@ -106,40 +121,43 @@ IF ($idf_python) {
 }
 
 #创建并写入 PowerShell 启动脚本
-'
-function esp_env_init{
-    switch($args.Count) {
-        1 {
-            $path = "' + $Path + '\esp\esp-idf-" + $args
-            $env:IDF_TOOLS_PATH=$path + "\.espressif"
-            . $path\esp-idf\export.ps1
-            return
-        }
-        Default {
-            Write-Error "args error"
-            return
+IF (Select-String -Path $PROFILE -Pattern "esp_env_init") {
+} ELSE {
+    '
+    function esp_env_init{
+        switch($args.Count) {
+            1 {
+                $path = "' + $Path + '\esp-idf-" + $args
+                $env:IDF_TOOLS_PATH=$path + "\.espressif"
+                . $path\esp-idf\export.ps1
+                return
+            }
+            Default {
+                Write-Error "args error"
+                return
+            }
         }
     }
-}
 
-function espefuse{
-    python $env:IDF_PATH"\components\esptool_py\esptool\espefuse.py" $args
-}
-function espsecure{
-    python $env:IDF_PATH"\components\esptool_py\esptool\espsecure.py" $args
-}
-function esptool{
-    python $env:IDF_PATH"\components\esptool_py\esptool\esptool.py" $args
-}
+    function espefuse{
+        python $env:IDF_PATH"\components\esptool_py\esptool\espefuse.py" $args
+    }
+    function espsecure{
+        python $env:IDF_PATH"\components\esptool_py\esptool\espsecure.py" $args
+    }
+    function esptool{
+        python $env:IDF_PATH"\components\esptool_py\esptool\esptool.py" $args
+    }
 
-function menuconfig{
-    Start-Process powershell -ArgumentList "-command &{idf.py menuconfig}"
-}
+    function menuconfig{
+        Start-Process powershell -ArgumentList "-command &{idf.py menuconfig}"
+    }
 
-Set-Alias idf idf.py
-' | Out-File $PROFILE
-Write-Host ""
-Write-Host "已覆盖创建 PowerShell 启动脚本: $PROFILE"
+    Set-Alias idf idf.py
+    ' | Out-File $PROFILE
+    Write-Host ""
+    Write-Host "已覆盖创建 PowerShell 启动脚本: $PROFILE"
+}
 
 #安装完成
 Write-Host ""
