@@ -1,64 +1,86 @@
-#安装git
+# Install git
 Write-Host ""
 IF (Get-Command git) {
     git --version
 } ELSE {
-    Write-Host '请安装git' -ForegroundColor red
+    Write-Host 'Please install git.' -ForegroundColor red
     Write-Host 'https://git-scm.com/download/win' -ForegroundColor red
     Write-Host ""
     pause
     exit
 }
 
-#安装python
+# Install python
 Write-Host ""
 IF (Get-Command python) {
     python --version
 } ELSE {
-    Write-Host '请安装python, 推荐稳定版本, 测试3.9.10版本OK' -ForegroundColor red
+    Write-Host 'Please install python. Recommended stable version. Test version 3.9.10 OK.' -ForegroundColor red
     Write-Host 'https://www.python.org/downloads/windows/' -ForegroundColor red
     Write-Host ""
     pause
     exit
 }
-#换源
+# Change Source
 pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
 pip config set global.trusted-host https://pypi.tuna.tsinghua.edu.cn
 
-#判断是否首次使用
+# First Use
 IF (![environment]::GetEnvironmentvariable("ESP_INSTALL_PATH", "User")) {
-    #获取安装地址
+    # Get idf install path
     Write-Host ""
-    $Path = Read-Host '请输入安装路径(路径: D:\___Software)'
+    Write-Host 'First install. Please enter idf install path, eg: D:\___Software'
+    $Path = Read-Host 'Path'
     IF ($Path -notmatch '^[a-zA-Z]:\\') {
         Write-Host ""
-        Write-Host '错误路径' -ForegroundColor red
+        Write-Host "Error path: $Path" -ForegroundColor red
         Write-Host ""
         pause
         exit
+    } ELSE {
+        [environment]::SetEnvironmentvariable("ESP_INSTALL_PATH", $Path + "\esp", "User")
     }
-    [environment]::SetEnvironmentvariable("ESP_INSTALL_PATH", $Path + "\esp", "User")
 } ELSE {
     $Path = [environment]::GetEnvironmentvariable("ESP_INSTALL_PATH", "User")
+    IF ($Path -notmatch '^[a-zA-Z]:\\') {
+        Write-Host ""
+        Write-Host "Error path: $Path" -ForegroundColor red
+        Write-Host ""
+        Write-Host 'Please enter idf install path, eg: D:\___Software'
+        $Path = Read-Host 'Path'
+        IF ($Path -notmatch '^[a-zA-Z]:\\') {
+            Write-Host ""
+            Write-Host "Error path: $Path" -ForegroundColor red
+            Write-Host ""
+            pause
+            exit
+        } ELSE {
+            [environment]::SetEnvironmentvariable("ESP_INSTALL_PATH", $Path + "\esp", "User")
+        }
+    }
     Write-Host ""
-    Write-Host "如需更换安装路径, 请删除用户环境变量: ESP_INSTALL_PATH 后重新执行脚本" -ForegroundColor yellow
-    Write-Host "请输入任意键继续安装..." -ForegroundColor yellow
-    Read-Host
+    Write-Host "ESP install path: $Path" -ForegroundColor green
+    Write-Host ""
 }
 
-#获取安装版本
-$Version = Read-Host '请输入安装的 idf 版本(分支: release/v4.3.1 或者 标签: v4.3.1)'
+# Get idf install version
+Write-Host 'Please enter idf install version, branch: "release/v4.3.1" or tag: "v4.3.1"'
+$Version = Read-Host 'Version'
 $Version = $Version.replace("\", "/")
 $Version = $Version.replace("release/v", "rv")
 IF ($Version -eq '') {
     Write-Host ""
-    Write-Host '错误分支或错误标签' -ForegroundColor red
+    Write-Host 'Error branch or Error tag.' -ForegroundColor red
     Write-Host ""
     pause
     exit
+} ELSE {
+    Write-Host ""
+    Write-Host "ESP install version: $Version" -ForegroundColor green
+    Write-Host ""
 }
 
-#变量
+# Temp variables
 Write-Host ""
 $url_idf = 'https://gitee.com/EspressifSystems/esp-idf.git'
 $url_tools = 'https://gitee.com/EspressifSystems/esp-gitee-tools.git'
@@ -67,10 +89,10 @@ $path_esp = $Path + '\esp-idf-' + $Version
 $path_esp_idf = $path_esp + '\esp-idf'
 $path_esp_espressif = $path_esp + '\.espressif'
 
-#创建文件夹
+# Create folder
 IF (Test-Path $path_esp_espressif) {
     Write-Host ""
-    Write-Host "安装失败, 已存在相同 idf 版本" -ForegroundColor red
+    Write-Host 'Failed, the same idf version exists.' -ForegroundColor red
     Write-Host ""
     pause
     exit
@@ -78,7 +100,7 @@ IF (Test-Path $path_esp_espressif) {
     $null = New-Item -ItemType Directory -Path $path_esp_espressif
 }
 
-#打开git bash 安装
+# Open "git bash" and then install
 $Version = $Version.replace("rv", "release/v")
 
 $cmd0 = 'cd ' + $path_esp.replace("\", "/") + ' && '
@@ -101,8 +123,8 @@ $ArgList = "'" + "'" + '-c ' + '"' + $cmd + '"' + "'" + "'"
 $return = Start-Process bash -ArgumentList $ArgList -Wait -PassThru -NoNewWindow
 IF ($return.ExitCode) {
     Write-Host ""
-    Write-Host "安装失败, 请查看失败信息, 删除安装版本后重装" -ForegroundColor red
-    Write-Host "idf 安装路径: $path_esp" -ForegroundColor red
+    Write-Host 'Failed, delete the installed version and reinstall it.' -ForegroundColor red
+    Write-Host "idf installation path: $path_esp" -ForegroundColor red
     Write-Host ""
     pause
     exit
@@ -113,14 +135,14 @@ IF ($idf_python) {
     Start-Process bash -ArgumentList $ArgList -Wait -NoNewWindow
 } ELSE {
     Write-Host ""
-    Write-Host "安装失败, 请查看失败信息, 删除安装版本后重装" -ForegroundColor red
-    Write-Host "idf 安装路径: $path_esp" -ForegroundColor red
+    Write-Host 'Failed, delete the installed version and reinstall it.' -ForegroundColor red
+    Write-Host "idf installation path: $path_esp" -ForegroundColor red
     Write-Host ""
     pause
     exit
 }
 
-#创建并写入 PowerShell 启动脚本
+# Overwrite or Create PowerShell Startup Script
 IF (Select-String -Path $PROFILE -Pattern "esp_env_init") {
 } ELSE {
     '
@@ -156,13 +178,12 @@ IF (Select-String -Path $PROFILE -Pattern "esp_env_init") {
     Set-Alias idf idf.py
     ' | Out-File $PROFILE
     Write-Host ""
-    Write-Host "已覆盖创建 PowerShell 启动脚本: $PROFILE"
+    Write-Host "Overwrite or create PowerShell Startup Script: $PROFILE"
 }
 
-#安装完成
+# Install Success
 Write-Host ""
-Write-Host '安装完成' -ForegroundColor green
+Write-Host 'Success!' -ForegroundColor green
 Write-Host ""
 pause
 exit
-
