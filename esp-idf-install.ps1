@@ -31,7 +31,7 @@ IF (![environment]::GetEnvironmentvariable("ESP_INSTALL_PATH", "User")) {
     Write-Host ""
     Write-Host 'First install. Please enter idf install path, eg: D:\___Software'
     $Path = Read-Host 'Path'
-    IF ($Path -notmatch '^[a-zA-Z]:\\') {
+    IF ($Path -notmatch '^[a-zA-Z]:') {
         Write-Host ""
         Write-Host "Error path: $Path" -ForegroundColor red
         Write-Host ""
@@ -42,13 +42,13 @@ IF (![environment]::GetEnvironmentvariable("ESP_INSTALL_PATH", "User")) {
     }
 } ELSE {
     $Path = [environment]::GetEnvironmentvariable("ESP_INSTALL_PATH", "User")
-    IF ($Path -notmatch '^[a-zA-Z]:\\') {
+    IF ($Path -notmatch '^[a-zA-Z]:') {
         Write-Host ""
         Write-Host "Error path: $Path" -ForegroundColor red
         Write-Host ""
         Write-Host 'Please enter idf install path, eg: D:\___Software'
         $Path = Read-Host 'Path'
-        IF ($Path -notmatch '^[a-zA-Z]:\\') {
+        IF ($Path -notmatch '^[a-zA-Z]:') {
             Write-Host ""
             Write-Host "Error path: $Path" -ForegroundColor red
             Write-Host ""
@@ -58,10 +58,10 @@ IF (![environment]::GetEnvironmentvariable("ESP_INSTALL_PATH", "User")) {
             [environment]::SetEnvironmentvariable("ESP_INSTALL_PATH", $Path + "\esp", "User")
         }
     }
-    Write-Host ""
-    Write-Host "ESP install path: $Path" -ForegroundColor green
-    Write-Host ""
 }
+Write-Host ""
+Write-Host "ESP install path: $Path" -ForegroundColor green
+Write-Host ""
 
 # Get idf install version
 Write-Host 'Please enter idf install version, branch: "release/v4.3.1" or tag: "v4.3.1"'
